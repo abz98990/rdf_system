@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/raw/*.csv
+data/processed/*.parquet
+models/*.joblib
+models/*.pt
+models/training_summary.json
+.pytest_cache/

@@ -1,0 +1,21 @@
+LSTM training on 150 series: train=208,333 val=4,200 test=4,200 windows
+epoch 1/20 - train_loss: 1.0625 - val_loss: 0.8280
+epoch 2/20 - train_loss: 1.0115 - val_loss: 0.8187
+epoch 3/20 - train_loss: 1.0024 - val_loss: 0.8286
+epoch 4/20 - train_loss: 0.9990 - val_loss: 0.8143
+epoch 5/20 - train_loss: 0.9935 - val_loss: 0.8120
+epoch 6/20 - train_loss: 0.9918 - val_loss: 0.8077
+epoch 7/20 - train_loss: 0.9884 - val_loss: 0.8060
+epoch 8/20 - train_loss: 0.9872 - val_loss: 0.8071
+epoch 9/20 - train_loss: 0.9848 - val_loss: 0.8086
+epoch 10/20 - train_loss: 0.9821 - val_loss: 0.8050
+epoch 11/20 - train_loss: 0.9815 - val_loss: 0.8008
+epoch 12/20 - train_loss: 0.9818 - val_loss: 0.8072
+epoch 13/20 - train_loss: 0.9794 - val_loss: 0.8038
+epoch 14/20 - train_loss: 0.9781 - val_loss: 0.8052
+Early stopping at epoch 14 (no improvement for 3 epochs).
+LSTM validation metrics:
+  MAE: 0.8089
+  RMSE: 1.6370
+  MAPE: 40.5210
+Saved model to C:\Users\A.B.Z\Documents\Freelance Work\1Thesis\Umair Shakeel\ml-pipeline\models\lstm_model.pt
