@@ -52,6 +52,83 @@ def plot_metrics_comparison(baseline_metrics: dict, lstm_metrics: dict, out_path
     plt.close(fig)
 
 
+MODEL_ORDER = [
+    ("naive_last_day (lag_1)", "Naive\nlast day"),
+    ("naive_last_week (lag_7)", "Naive\nlast week"),
+    ("naive_7day_mean", "Naive\n7-day mean"),
+    ("baseline_ridge", "Ridge\nbaseline"),
+    ("lstm", "LSTM"),
+]
+
+
+def plot_fair_comparison(evaluation: dict, out_path: Path):
+    """Every model on identical held-out rows, on the untouched test split --
+    the comparison the report's conclusions actually rest on.
+    """
+    split = evaluation["test"]["models"]
+    labels = [label for key, label in MODEL_ORDER if key in split]
+    colors = ["#B0B0B0", "#B0B0B0", "#B0B0B0", "#4C72B0", "#DD8452"][: len(labels)]
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
+    for ax, metric in zip(axes, ["MAE", "RMSE", "MAPE"]):
+        values = [split[key][metric] for key, _ in MODEL_ORDER if key in split]
+        bars = ax.bar(labels, values, color=colors)
+        ax.set_title(metric + (" (%)" if metric == "MAPE" else ""))
+        ax.bar_label(bars, fmt="%.2f", fontsize=8)
+        ax.grid(axis="y", alpha=0.3)
+        ax.tick_params(axis="x", labelsize=8)
+    fig.suptitle(
+        f"Test-set performance on identical held-out rows "
+        f"({evaluation['test']['n_windows']:,} windows, "
+        f"{evaluation['test']['n_series']} series)"
+    )
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def write_fair_comparison_table(evaluation: dict, out_path: Path):
+    lines = [
+        "# Like-for-like Model Comparison",
+        "",
+        f"Generated: {evaluation['generated_at']}",
+        "",
+        evaluation["note"],
+        "",
+    ]
+    for split_name in ["validation", "test"]:
+        split = evaluation[split_name]
+        lines += [
+            f"## {split_name.title()} split",
+            "",
+            f"{split['n_windows']:,} windows across {split['n_series']} series; "
+            f"mean actual sales = {split['mean_actual_sales']:.3f} units/day.",
+            "",
+            "| Model | MAE | RMSE | MAPE (%) |",
+            "|---|---|---|---|",
+        ]
+        for key, label in MODEL_ORDER:
+            if key in split["models"]:
+                m = split["models"][key]
+                clean = label.replace("\n", " ")
+                lines.append(f"| {clean} | {m['MAE']:.4f} | {m['RMSE']:.4f} | {m['MAPE']:.2f} |")
+        lines.append("")
+
+    ref = evaluation.get("baseline_on_all_series_test")
+    if ref:
+        m = ref["metrics"]
+        lines += [
+            "## Reference: Ridge baseline across every series (NOT comparable)",
+            "",
+            f"{ref['n_rows']:,} rows across {ref['n_series']:,} series -- "
+            f"MAE {m['MAE']:.4f}, RMSE {m['RMSE']:.4f}, MAPE {m['MAPE']:.2f}%.",
+            "",
+            ref["note"],
+            "",
+        ]
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def write_metrics_table(summary: dict, out_path: Path):
     b = summary["baseline_val_metrics"]
     l = summary["lstm_val_metrics"]
@@ -104,8 +181,24 @@ def run():
     write_metrics_table(summary, metrics_table_path)
     print(f"Wrote {loss_curve_path}, {metrics_chart_path}, {metrics_table_path}")
 
+    generated = [loss_curve_path, metrics_chart_path, metrics_table_path, summary_path]
+
+    # The like-for-like evaluation is what the report's conclusions rest on;
+    # the train_pipeline numbers above score each model on its own sample.
+    evaluation_path = MODELS_DIR / "final_evaluation.json"
+    if evaluation_path.exists():
+        evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+        fair_chart_path = REPORTS_DIR / "fair_comparison.png"
+        fair_table_path = REPORTS_DIR / "fair_comparison.md"
+        plot_fair_comparison(evaluation, fair_chart_path)
+        write_fair_comparison_table(evaluation, fair_table_path)
+        generated += [fair_chart_path, fair_table_path, evaluation_path]
+        print(f"Wrote {fair_chart_path}, {fair_table_path}")
+    else:
+        print(f"(No {evaluation_path.name} yet -- run `python cli.py evaluate` for the like-for-like comparison.)")
+
     FPR_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    for src in [loss_curve_path, metrics_chart_path, metrics_table_path, summary_path]:
+    for src in generated:
         dst = FPR_ASSETS_DIR / src.name
         shutil.copy2(src, dst)
     training_log = REPORTS_DIR / "full_pipeline_log.txt"

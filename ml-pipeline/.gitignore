@@ -7,4 +7,5 @@ data/processed/*.parquet
 models/*.joblib
 models/*.pt
 models/training_summary.json
+models/final_evaluation.json
 .pytest_cache/

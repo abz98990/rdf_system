@@ -4,6 +4,7 @@ just wraps them so there's one command to remember.
 
     python cli.py download-data   # fetch the M5 dataset (no Kaggle needed)
     python cli.py train           # ingest -> features -> baseline -> LSTM
+    python cli.py evaluate        # like-for-like scoring of all models
     python cli.py report          # regenerate plots/metrics from the last run
     python cli.py serve           # start the FastAPI prediction server
     python cli.py demo            # live terminal simulation (see README)
@@ -24,6 +25,12 @@ def cmd_download_data(args):
 
 def cmd_train(args):
     from src.train_pipeline import run
+
+    run()
+
+
+def cmd_evaluate(args):
+    from scripts.final_evaluation import run
 
     run()
 
@@ -58,6 +65,7 @@ def main():
 
     sub.add_parser("download-data", help="Download the M5 dataset (Kaggle-free GitHub mirror).").set_defaults(func=cmd_download_data)
     sub.add_parser("train", help="Run the full pipeline and save trained models.").set_defaults(func=cmd_train)
+    sub.add_parser("evaluate", help="Score every model on identical held-out rows (like-for-like).").set_defaults(func=cmd_evaluate)
     sub.add_parser("report", help="Regenerate report plots/metrics from the last training run.").set_defaults(func=cmd_report)
 
     serve_p = sub.add_parser("serve", help="Start the FastAPI prediction server.")
